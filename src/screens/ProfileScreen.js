@@ -7,6 +7,7 @@ import {
   Dimensions,
   FlatList,
   Pressable,
+  Alert,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import FeedPost from '../components/FeedPost';
@@ -104,11 +105,27 @@ const ProfileScreen = () => {
 
   const [posts, setPosts] = useState([]);
 
+  const navigation = useNavigation();
+
   useEffect(() => {
     const fetchData = async () => {
-      const userId = route?.params?.id;
+      const userData = await Auth.currentAuthenticatedUser();
+      const userId = route?.params?.id || userData.attributes.sub;
+
       if (!userId) return;
+
       const userDb = await DataStore.query(User, userId);
+
+      const isMe = userId === userData.attributes.sub;
+
+      if (!userDb) {
+        if (isMe) {
+          navigation.navigate('UpdateProfile');
+        } else {
+          Alert.alert('User not found!');
+        }
+      }
+
       setUser(userDb);
       const dbPosts = await DataStore.query(Post, p =>
         p.postUserId('eq', userId)
@@ -125,10 +142,6 @@ const ProfileScreen = () => {
       </View>
     );
   }
-
-  console.log(user);
-
-  console.warn('User: ', route?.params?.id);
 
   return (
     <FlatList
