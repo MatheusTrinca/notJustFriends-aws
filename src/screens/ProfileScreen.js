@@ -17,8 +17,9 @@ import {
   Ionicons,
   Entypo,
 } from '@expo/vector-icons';
-import user from '../../assets/data/user.json';
-import { Auth } from 'aws-amplify';
+import { Auth, DataStore } from 'aws-amplify';
+import { User, Post } from '../models';
+import { useEffect, useState } from 'react';
 
 const dummy_img =
   'https://notjustdev-dummy.s3.us-east-2.amazonaws.com/avatars/user.png';
@@ -26,16 +27,12 @@ const bg = 'https://notjustdev-dummy.s3.us-east-2.amazonaws.com/images/1.jpg';
 
 const profilePictureWidth = Dimensions.get('window').width * 0.4;
 
-const ProfileScreenHeader = ({ user, isMe = false }) => {
+const ProfileScreenHeader = ({ user, isMe = false, route }) => {
   const navigation = useNavigation();
 
   const signOut = async () => {
     await Auth.signOut();
   };
-
-  if (!user) {
-    return <ActivityIndicator />;
-  }
 
   return (
     <View style={styles.container}>
@@ -103,11 +100,39 @@ const ProfileScreenHeader = ({ user, isMe = false }) => {
 const ProfileScreen = () => {
   const route = useRoute();
 
+  const [user, setUser] = useState(null);
+
+  const [posts, setPosts] = useState([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const userId = route?.params?.id;
+      if (!userId) return;
+      const userDb = await DataStore.query(User, userId);
+      setUser(userDb);
+      const dbPosts = await DataStore.query(Post, p =>
+        p.postUserId('eq', userId)
+      );
+      setPosts(dbPosts);
+    };
+    fetchData();
+  }, []);
+
+  if (!user) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center' }}>
+        <ActivityIndicator />
+      </View>
+    );
+  }
+
+  console.log(user);
+
   console.warn('User: ', route?.params?.id);
 
   return (
     <FlatList
-      data={user.posts}
+      data={posts}
       renderItem={({ item }) => <FeedPost post={item} />}
       showsVerticalScrollIndicator={false}
       ListHeaderComponent={() => (
