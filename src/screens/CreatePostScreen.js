@@ -17,12 +17,15 @@ import { Post } from '../models';
 import { Auth, DataStore, Storage } from 'aws-amplify';
 import { v4 as uuidv4 } from 'uuid';
 import { S3Image } from 'aws-amplify-react-native';
+import { useUserContext } from '../context/UserContext';
 
 const dummy_img =
   'https://notjustdev-dummy.s3.us-east-2.amazonaws.com/avatars/user.png';
 
 const CreatePostScreen = () => {
   const insets = useSafeAreaInsets();
+
+  const { user } = useUserContext();
 
   const navigation = useNavigation();
 

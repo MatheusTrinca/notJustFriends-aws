@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import { Amplify, Auth } from 'aws-amplify';
 import { withAuthenticator } from 'aws-amplify-react-native';
 import awsconfig from './src/aws-exports';
+import UserContextProvider from './src/context/UserContext';
 
 Amplify.configure({ ...awsconfig, Analytics: { disabled: true } });
 
@@ -21,10 +22,12 @@ const App = () => {
 
   return (
     <SafeAreaProvider>
-      <NavigationContainer style={styles.container}>
-        <Navigation />
-        <StatusBar style="auto" />
-      </NavigationContainer>
+      <UserContextProvider>
+        <NavigationContainer style={styles.container}>
+          <Navigation />
+          <StatusBar style="auto" />
+        </NavigationContainer>
+      </UserContextProvider>
     </SafeAreaProvider>
   );
 };
