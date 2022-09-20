@@ -16,5 +16,11 @@ export type AmplifyDependentResourcesAttributes = {
             "GraphQLAPIIdOutput": "string",
             "GraphQLAPIEndpointOutput": "string"
         }
+    },
+    "storage": {
+        "s3notjustfriendsstorage23922ac9": {
+            "BucketName": "string",
+            "Region": "string"
+        }
     }
 }

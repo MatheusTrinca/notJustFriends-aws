@@ -14,14 +14,12 @@ import { Entypo } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
 import { Post } from '../models';
-import { Auth, DataStore } from 'aws-amplify';
+import { Auth, DataStore, Storage } from 'aws-amplify';
+import { v4 as uuidv4 } from 'uuid';
+import { S3Image } from 'aws-amplify-react-native';
 
-const user = {
-  id: 'u1',
-  image:
-    'https://notjustdev-dummy.s3.us-east-2.amazonaws.com/avatars/jeff.jpeg',
-  name: 'Jeff Bezos',
-};
+const dummy_img =
+  'https://notjustdev-dummy.s3.us-east-2.amazonaws.com/avatars/user.png';
 
 const CreatePostScreen = () => {
   const insets = useSafeAreaInsets();
@@ -34,16 +32,20 @@ const CreatePostScreen = () => {
   const onSubmit = async () => {
     const userData = await Auth.currentAuthenticatedUser();
 
-    const newPost = new Post({
+    const newPost = {
       description,
       //image,
       numberOfLikes: 0,
       numberOfShares: 0,
       postUserId: userData.attributes.sub,
       _version: 1,
-    });
+    };
 
-    DataStore.save(newPost);
+    if (image) {
+      newPost.image = await uploadFile(image);
+    }
+
+    await DataStore.save(new Post(newPost));
 
     setDescription('');
     setImage(null);
@@ -65,6 +67,20 @@ const CreatePostScreen = () => {
     }
   };
 
+  const uploadFile = async fileUri => {
+    try {
+      const response = await fetch(fileUri);
+      const blob = await response.blob();
+      const key = `${uuidv4()}.png`;
+      await Storage.put(key, blob, {
+        contentType: 'image/png', // contentType is optional
+      });
+      return key;
+    } catch (err) {
+      console.log('Error uploading file:', err);
+    }
+  };
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -73,7 +89,11 @@ const CreatePostScreen = () => {
       keyboardVerticalOffset={120}
     >
       <View style={styles.header}>
-        <Image source={{ uri: user.image }} style={styles.profileImage} />
+        {user?.image ? (
+          <S3Image imgKey={user.image} style={styles.profileImage} />
+        ) : (
+          <Image source={{ uri: dummy_img }} style={styles.profileImage} />
+        )}
         <Text style={styles.name}>{user.name}</Text>
         <Entypo
           onPress={pickImage}

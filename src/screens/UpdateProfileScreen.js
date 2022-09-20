@@ -11,9 +11,11 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
-import { API, Auth, DataStore, graphqlOperation } from 'aws-amplify';
+import { API, Auth, DataStore, graphqlOperation, Storage } from 'aws-amplify';
 import { User } from '../models';
 import { useNavigation } from '@react-navigation/native';
+import { v4 as uuidv4 } from 'uuid';
+import { S3Image } from 'aws-amplify-react-native';
 
 const dummy_img =
   'https://notjustdev-dummy.s3.us-east-2.amazonaws.com/avatars/user.png';
@@ -67,31 +69,62 @@ const UpdateProfileScreen = () => {
 
   const onSave = async () => {
     if (user) {
-      await updateUser();
+      await onUpdateUser();
     } else {
-      await createUser();
+      await onCreateUser();
     }
     navigation.goBack();
   };
 
-  const updateUser = async () => {
-    await DataStore.save(
-      User.copyOf(user, update => {
-        update.name = name;
-      })
-    );
+  const uploadFile = async fileUri => {
+    try {
+      const response = await fetch(fileUri);
+      const blob = await response.blob();
+      const key = `${uuidv4()}.png`;
+      await Storage.put(key, blob, {
+        contentType: 'image/png',
+      });
+      return key;
+    } catch (err) {
+      console.log('Error uploading file:', err);
+    }
   };
 
-  const createUser = async () => {
+  const onCreateUser = async () => {
     const userData = await Auth.currentAuthenticatedUser();
     const newUser = {
       id: userData.attributes.sub,
       name,
       _version: 1,
     };
+    if (image) {
+      newUser.image = await uploadFile(image);
+    }
 
     await API.graphql(graphqlOperation(createUser, { input: newUser }));
   };
+
+  const onUpdateUser = async () => {
+    let imageKey;
+    if (image) {
+      imageKey = await uploadFile(image);
+    }
+    await DataStore.save(
+      User.copyOf(user, updated => {
+        updated.name = name;
+        if (imageKey) {
+          updated.image = imageKey;
+        }
+      })
+    );
+  };
+
+  let renderImage = <Image source={{ uri: dummy_img }} style={styles.image} />;
+  if (image) {
+    renderImage = <Image source={{ uri: image }} style={styles.image} />;
+  } else if (user?.image) {
+    renderImage = <S3Image imgKey={user.image} style={styles.image} />;
+  }
 
   return (
     <KeyboardAvoidingView
@@ -101,10 +134,7 @@ const UpdateProfileScreen = () => {
       keyboardVerticalOffset={230}
     >
       <Pressable onPress={pickImage} style={styles.imagePickerContainer}>
-        <Image
-          source={{ uri: image || user?.image || dummy_img }}
-          style={styles.image}
-        />
+        {renderImage}
         <Text>Change photo</Text>
       </Pressable>
 

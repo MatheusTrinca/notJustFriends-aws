@@ -8,6 +8,7 @@ import {
 } from '@expo/vector-icons';
 import LikeImage from '../../../assets/images/like.png';
 import { useNavigation } from '@react-navigation/native';
+import { S3Image } from 'aws-amplify-react-native';
 
 const FeedPost = ({ post }) => {
   const [isLiked, setIsLiked] = useState(false);
@@ -23,10 +24,11 @@ const FeedPost = ({ post }) => {
         style={styles.header}
         onPress={() => navigation.navigate('Profile', { id: post.postUserId })}
       >
-        <Image
-          source={{ uri: post.User?.image || dummy_img }}
-          style={styles.profileImage}
-        />
+        {post.User?.image ? (
+          <S3Image imgKey={post.User.image} style={styles.profileImage} />
+        ) : (
+          <Image source={{ uri: dummy_img }} style={styles.profileImage} />
+        )}
         <View>
           <Text style={styles.name}>{post.User?.name}</Text>
           <Text style={styles.subtitle}>{post.createdAt}</Text>
@@ -40,11 +42,7 @@ const FeedPost = ({ post }) => {
       </Pressable>
       <Text style={styles.description}>{post.description}</Text>
       {post.image && (
-        <Image
-          style={styles.image}
-          source={{ uri: post.image }}
-          resizeMode="cover"
-        />
+        <S3Image imgKey={post.image} style={styles.image} resizeMode="cover" />
       )}
       <View style={styles.footer}>
         {/* Status Row */}
